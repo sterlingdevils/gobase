@@ -1,12 +1,12 @@
 package dirscan
 
 import (
-	"chan_psw/pkg/chantools"
-	"chan_psw/pkg/metrics"
 	"context"
 	"errors"
 	"os"
 	"path/filepath"
+	"sdbase/pkg/chantools"
+	"sdbase/pkg/metrics"
 	"strings"
 	"sync"
 	"time"
