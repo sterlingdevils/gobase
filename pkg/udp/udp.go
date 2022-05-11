@@ -31,6 +31,8 @@ type UDP struct {
 	ctx  context.Context
 	can  context.CancelFunc
 	once sync.Once
+
+	ct ConnType
 }
 
 func (u *UDP) protectChanWrite(t Packet) {
@@ -96,10 +98,19 @@ func (u *UDP) processInChan(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for b := range u.in {
-		_, err := u.conn.WriteToUDP(b.Data, b.Addr)
-		if err != nil {
-			log.Println("udp write failed")
+		switch u.ct {
+		case SERVER:
+			_, err := u.conn.WriteToUDP(b.Data, b.Addr)
+			if err != nil {
+				log.Println("udp write failed")
+			}
+		case CLIENT:
+			_, err := u.conn.Write(b.Data)
+			if err != nil {
+				log.Println("udp write failed")
+			}
 		}
+
 	}
 }
 
@@ -134,20 +145,29 @@ func (u *UDP) Close() {
 	})
 }
 
-func New(wg *sync.WaitGroup, in1 <-chan Packet, addr string, ct ConnType) (*UDP, error) {
+// New will return a UDP connection component,  it can be setup with as a Server to listen
+// for incomming connections, or a client to connect out to a server.  After that client and
+// server mode work the same.
+// Either way it will read from in channel and then send the packet, and it will listen
+// for incomming packets on the socket and put them onto the output channel
+func New(wg *sync.WaitGroup, in1 <-chan Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
 	c, cancel := context.WithCancel(context.Background())
-	udp := UDP{out: make(chan Packet), addr: addr, ctx: c, can: cancel, in: in1}
+	udp := UDP{out: make(chan Packet, outChanSize), addr: addr, ctx: c, can: cancel, in: in1, ct: ct}
 
 	var err error = nil
 	switch ct {
 	case SERVER:
-		err = udp.serverConn()
+		if err = udp.serverConn(); err != nil {
+			return nil, err
+		}
 	case CLIENT:
-		err = udp.clientConn()
+		if err := udp.clientConn(); err != nil {
+			return nil, err
+		}
 	}
 
 	wg.Add(1)
 	go udp.mainloop(wg)
 
-	return &udp, err
+	return &udp, nil
 }

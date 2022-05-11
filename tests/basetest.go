@@ -3,23 +3,54 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"sdbase/pkg/chantools"
 	"sdbase/pkg/dirscan"
 	"sdbase/pkg/metrics"
-	"sdbase/pkg/udprx"
-	"sdbase/pkg/udptx"
+	"sdbase/pkg/udp"
 	"strconv"
 	"sync"
 	"time"
 )
 
+func dispPacket(p udp.Packet) {
+	fmt.Printf("%v: %v\n", p.Addr, p.Data)
+}
+
+func printallpackets(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// Create a UDP component
+	//  First step is to create an input channel
+	//  Next step call New
+	//  Then defer the close for the UDP component
+	//  Then get the output Channel
+	//  Use tit
+	in := make(chan udp.Packet, 5)
+	rx, err := udp.New(wg, in, "localhost:9999", udp.CLIENT, 1)
+	if err != nil {
+		log.Fatalln("error creating UDP")
+	}
+	defer rx.Close()
+
+	// Test sending a packet
+	in <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9999}, Data: []byte("Hello from Us.")}
+
+	// Receive any packets on the channel that Received Packets goto
+	for p := range rx.OuputChan() {
+		dispPacket(p) // Display the Packet
+		in <- p       // Send them Back out to the sender
+	}
+}
+
 func mainloop(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	u, _ := udprx.New(wg, 9999)
-	udptx.New(wg, "localhost:9998", u.OutputChan())
-	defer u.Close()
+	// Test out the UDP Component
+	wg.Add(1)
+	go printallpackets(wg)
 
+	// Testout Metricss
 	mex := metrics.New()
 
 	ds, err := dirscan.New(wg, ".", time.Second*2, 0)
