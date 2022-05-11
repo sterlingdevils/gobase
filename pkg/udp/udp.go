@@ -8,7 +8,10 @@ import (
 	"sync"
 )
 
-type chantype []byte
+type Packet struct {
+	Addr *net.UDPAddr
+	Data []byte
+}
 
 type ConnType int
 
@@ -20,8 +23,8 @@ const (
 
 type UDP struct {
 	addr string
-	in   <-chan chantype
-	out  chan chantype
+	in   <-chan Packet
+	out  chan Packet
 
 	conn *net.UDPConn
 
@@ -30,7 +33,7 @@ type UDP struct {
 	once sync.Once
 }
 
-func (u *UDP) protectChanWrite(t chantype) {
+func (u *UDP) protectChanWrite(t Packet) {
 	defer chantools.RecoverFromClosedChan()
 	select {
 	case u.out <- t:
@@ -72,13 +75,14 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 
 	for {
 		buf := make([]byte, maxDSz)
-		n, _, err := u.conn.ReadFromUDP(buf)
+		n, a, err := u.conn.ReadFromUDP(buf)
 		if err != nil {
 			log.Println("readfromudp err: ", err)
 			continue
 		}
 
-		u.protectChanWrite(buf[:n])
+		p := Packet{Addr: a, Data: buf[:n]}
+		u.protectChanWrite(p)
 
 		// Check if the context is cancled
 		if u.ctx.Err() != nil {
@@ -92,7 +96,7 @@ func (u *UDP) processInChan(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for b := range u.in {
-		_, err := u.conn.Write(b)
+		_, err := u.conn.WriteToUDP(b.Data, b.Addr)
 		if err != nil {
 			log.Println("udp write failed")
 		}
@@ -119,7 +123,7 @@ func (u *UDP) mainloop(wg *sync.WaitGroup) {
 // ------- Public Methods --------
 
 // OutputChan returns read only output channel
-func (u *UDP) OuputChan() <-chan chantype {
+func (u *UDP) OuputChan() <-chan Packet {
 	return u.out
 }
 
@@ -130,19 +134,20 @@ func (u *UDP) Close() {
 	})
 }
 
-func New(wg *sync.WaitGroup, in1 <-chan chantype, addr string, ct ConnType) (*UDP, error) {
+func New(wg *sync.WaitGroup, in1 <-chan Packet, addr string, ct ConnType) (*UDP, error) {
 	c, cancel := context.WithCancel(context.Background())
-	udp := UDP{out: make(chan chantype), addr: addr, ctx: c, can: cancel, in: in1}
+	udp := UDP{out: make(chan Packet), addr: addr, ctx: c, can: cancel, in: in1}
 
+	var err error = nil
 	switch ct {
 	case SERVER:
-		udp.serverConn()
+		err = udp.serverConn()
 	case CLIENT:
-		udp.clientConn()
+		err = udp.clientConn()
 	}
 
 	wg.Add(1)
 	go udp.mainloop(wg)
 
-	return &udp, nil
+	return &udp, err
 }
