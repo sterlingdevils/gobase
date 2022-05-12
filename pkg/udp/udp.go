@@ -128,6 +128,7 @@ func (u *UDP) mainloop(wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-u.ctx.Done():
+			return
 		}
 	}
 }
