@@ -74,7 +74,11 @@ func (u *UDP) clientConn() error {
 
 // listen loop to incomming UDP
 func (u *UDP) processInUDP(wg *sync.WaitGroup) {
-	defer wg.Done()
+	// For now, due to the ReadFromUDP blocking
+	// we are going to call wg.Done so things dont
+	// wait for us until we get a packet.  This
+	// should be a defer wg.Done()
+	wg.Done()
 
 	for {
 		buf := make([]byte, maxDSz)
