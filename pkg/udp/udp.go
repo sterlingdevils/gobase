@@ -4,8 +4,9 @@ import (
 	"context"
 	"log"
 	"net"
-	"sdbase/pkg/chantools"
 	"sync"
+
+	"github.com/sterlingdevils/gobase/pkg/chantools"
 )
 
 type Packet struct {

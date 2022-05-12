@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sdbase/pkg/chantools"
 	"sync"
+
+	"github.com/sterlingdevils/gobase/pkg/chantools"
 )
 
 const (

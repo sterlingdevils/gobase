@@ -3,21 +3,22 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
-	"sdbase/pkg/chantools"
-	"sdbase/pkg/dirscan"
-	"sdbase/pkg/metrics"
-	"sdbase/pkg/udp"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/sterlingdevils/gobase/pkg/chantools"
+	"github.com/sterlingdevils/gobase/pkg/dirscan"
+	"github.com/sterlingdevils/gobase/pkg/metrics"
+	"github.com/sterlingdevils/gobase/pkg/udp"
 )
 
 func dispPacket(p udp.Packet) {
 	fmt.Printf("%v: %v\n", p.Addr, p.Data)
 }
 
-func printallpackets(wg *sync.WaitGroup) {
+// test UDP component
+func testUDP(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Create a UDP component
@@ -25,7 +26,7 @@ func printallpackets(wg *sync.WaitGroup) {
 	//  Next step call New
 	//  Then defer the close for the UDP component
 	//  Then get the output Channel
-	//  Use tit
+	//  Use it
 	in := make(chan udp.Packet, 5)
 	rx, err := udp.New(wg, in, "localhost:9999", udp.CLIENT, 1)
 	if err != nil {
@@ -34,13 +35,16 @@ func printallpackets(wg *sync.WaitGroup) {
 	defer rx.Close()
 
 	// Test sending a packet
-	in <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9999}, Data: []byte("Hello from Us.")}
+	//	in <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9999}, Data: []byte("Hello from Us.")}
+	in <- udp.Packet{Data: []byte("Hello from Number Two")}
 
 	// Receive any packets on the channel that Received Packets goto
 	for p := range rx.OuputChan() {
 		dispPacket(p) // Display the Packet
 		in <- p       // Send them Back out to the sender
 	}
+
+	close(in)
 }
 
 func mainloop(wg *sync.WaitGroup) {
@@ -48,7 +52,7 @@ func mainloop(wg *sync.WaitGroup) {
 
 	// Test out the UDP Component
 	wg.Add(1)
-	go printallpackets(wg)
+	go testUDP(wg)
 
 	// Testout Metricss
 	mex := metrics.New()

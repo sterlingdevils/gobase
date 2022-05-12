@@ -5,11 +5,12 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"sdbase/pkg/chantools"
-	"sdbase/pkg/metrics"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sterlingdevils/gobase/pkg/chantools"
+	"github.com/sterlingdevils/gobase/pkg/metrics"
 )
 
 const (
