@@ -1,4 +1,5 @@
-package udp
+// Package udp_test will test the public API of udp
+package udp_test
 
 import (
 	"fmt"
@@ -6,11 +7,9 @@ import (
 	"net"
 	"sync"
 	"time"
-)
 
-func dispPacket(p Packet) {
-	fmt.Printf("%v: %v\n", p.Addr, p.Data)
-}
+	"github.com/sterlingdevils/gobase/pkg/udp"
+)
 
 // Example of how to create,receive and send packets
 //
@@ -20,11 +19,11 @@ func dispPacket(p Packet) {
 func Example() {
 	wg := new(sync.WaitGroup)
 
-	in := make(chan Packet, 5)
+	in := make(chan udp.Packet, 5)
 	defer close(in)
 
 	// Must pass in the input channel as we dont assume we own it
-	udpcomp, err := New(wg, in, ":9092", SERVER, 1)
+	udpcomp, err := udp.New(wg, in, ":9092", udp.SERVER, 1)
 	if err != nil {
 		log.Fatalln("error creating UDP")
 	}
@@ -34,9 +33,9 @@ func Example() {
 	for {
 		select {
 		case <-time.After(time.Second * 1):
-			in <- Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9092}, Data: []byte("Hello from Us.")}
+			in <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9092}, Data: []byte("Hello from Us.")}
 		case p := <-udpcomp.OuputChan():
-			dispPacket(p) // Display the Packet
+			fmt.Printf("%v: %v\n", p.Addr, p.Data)
 			return
 		}
 	}
