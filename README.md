@@ -1,4 +1,7 @@
-# sdbase
+[![GoDoc](https://godoc.org/github.com/sterlingdevils/gobase?status.svg)](https://godoc.org/github.com/sterlingdevils/gobase)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sterlingdevils/gobase)](https://goreportcard.com/report/github.com/sterlingdevils/gobase)
+
+# gobase
 
 Go packages that come from sterling devils to be used by multiple projects
 Mostly based on channels
