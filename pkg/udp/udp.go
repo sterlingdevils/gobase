@@ -1,3 +1,5 @@
+// Package udp impliments a UDP socket component that uses
+// go channels to for sending and receiving UDP packets
 package udp
 
 import (
@@ -9,11 +11,13 @@ import (
 	"github.com/sterlingdevils/gobase/pkg/chantools"
 )
 
+// Packet holds a UDP address and Data from the UDP
 type Packet struct {
 	Addr *net.UDPAddr
 	Data []byte
 }
 
+// ConnType are constants for UDP socket type
 type ConnType int
 
 const (
@@ -22,6 +26,7 @@ const (
 	CLIENT ConnType = 2
 )
 
+// UDP holds our private data for the component
 type UDP struct {
 	addr string
 	in   <-chan Packet
@@ -36,6 +41,8 @@ type UDP struct {
 	ct ConnType
 }
 
+// protectChanWrite sends to a channel with a context cancel to
+// exit on contect close
 func (u *UDP) protectChanWrite(t Packet) {
 	defer chantools.RecoverFromClosedChan()
 	select {
@@ -44,6 +51,7 @@ func (u *UDP) protectChanWrite(t Packet) {
 	}
 }
 
+// serverConn sets up the socket as a server
 func (u *UDP) serverConn() error {
 	addr, err := net.ResolveUDPAddr("udp4", u.addr)
 	if err != nil {
@@ -58,6 +66,7 @@ func (u *UDP) serverConn() error {
 	return nil
 }
 
+// clientConn sets up the socket as a client
 func (u *UDP) clientConn() error {
 	a, err := net.ResolveUDPAddr("udp4", u.addr)
 	if err != nil {
@@ -72,7 +81,7 @@ func (u *UDP) clientConn() error {
 	return nil
 }
 
-// listen loop to incomming UDP
+// processInUDP will listen incomming UDP and put on output channel
 func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 	// For now, due to the ReadFromUDP blocking
 	// we are going to call wg.Done so things dont
@@ -98,7 +107,8 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 	}
 }
 
-// Process Incomming Channel Data
+// processInChan will handle the receving on the input channel and
+// output via the UDP connection
 func (u *UDP) processInChan(wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -119,7 +129,7 @@ func (u *UDP) processInChan(wg *sync.WaitGroup) {
 	}
 }
 
-// mainloop
+// mainloop will setup to receive UDP and input channel processing
 func (u *UDP) mainloop(wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -137,13 +147,17 @@ func (u *UDP) mainloop(wg *sync.WaitGroup) {
 	}
 }
 
-// ------- Public Methods --------
+// ------------------------------------------------------------------------------------
+// Public Methods
+// ------------------------------------------------------------------------------------
 
-// OutputChan returns read only output channel
+// OutputChan returns read only output channel that the incomming UDP packets will
+// be placed onto
 func (u *UDP) OuputChan() <-chan Packet {
 	return u.out
 }
 
+// Close will shutdown the output channel and cancel the context for the listen
 func (u *UDP) Close() {
 	u.can()
 	u.once.Do(func() {
