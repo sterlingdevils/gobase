@@ -64,9 +64,8 @@ type Packet struct {
 // ConnType are constants for UDP socket type
 type ConnType int
 
-
 const (
-	maxDSz          = 65507
+	maxDSz = 65507
 	// SERVER used to create a listen socket
 	SERVER ConnType = 1
 	// CLIENT used to create a connect to socket
@@ -221,10 +220,9 @@ func New(wg *sync.WaitGroup, in1 <-chan Packet, addr string, ct ConnType, outCha
 	c, cancel := context.WithCancel(context.Background())
 	udp := UDP{out: make(chan Packet, outChanSize), addr: addr, ctx: c, can: cancel, in: in1, ct: ct}
 
-	var err error = nil
 	switch ct {
 	case SERVER:
-		if err = udp.serverConn(); err != nil {
+		if err := udp.serverConn(); err != nil {
 			return nil, err
 		}
 	case CLIENT:
