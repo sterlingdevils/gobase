@@ -1,47 +1,5 @@
 // Package udp implements a UDP socket component that uses
 // go channels to for sending and receiving UDP packets
-/*
-	Example:
-
-	package main
-
-	import (
-		"fmt"
-	        "log"
-	        "net"
-        	"sync"
-	        "time"
-
-	        "github.com/sterlingdevils/gobase/pkg/udp"
-	)
-
-	func dispPacket(p udp.Packet) {
-          fmt.Printf("%v: %v\n", p.Addr, p.Data)
-	}
-
-
-	func main() {
-	  in := make(chan udp.Packet, 5)
-          defer close(in)
-	  wg := new(sync.WaitGroup)
-	  rx, err := udp.New(wg, in, ":9092", udp.SERVER, 1)
-          if err != nil {
-                log.Fatalln("error creating UDP")
-          }
-          defer rx.Close()
-
-          in <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9999}, Data: []byte("Hello from Us.")}
-          out := rx.OuputChan()
-          for {
-                select {
-                case <-time.After(time.Second * 20):
-                        return
-                case p := <-out:
-                        dispPacket(p) // Display the Packet
-                }
-          }
-	}
-*/
 package udp
 
 import (
@@ -61,11 +19,13 @@ type Packet struct {
 	Data []byte
 }
 
+const maxDSz = 65507
+
 // ConnType are constants for UDP socket type
 type ConnType int
 
+// Socket Connection type
 const (
-	maxDSz = 65507
 	// SERVER used to create a listen socket
 	SERVER ConnType = 1
 	// CLIENT used to create a connect to socket
@@ -128,11 +88,13 @@ func (u *UDP) clientConn() error {
 }
 
 // processInUDP will listen incomming UDP and put on output channel
+//
+// Notes
+//   For now, due to the ReadFromUDP blocking
+//   we are going to call wg.Done so things dont
+//   wait for us until we get a packet.  This
+//   should be a defer wg.Done()
 func (u *UDP) processInUDP(wg *sync.WaitGroup) {
-	// For now, due to the ReadFromUDP blocking
-	// we are going to call wg.Done so things dont
-	// wait for us until we get a packet.  This
-	// should be a defer wg.Done()
 	wg.Done()
 
 	for {
