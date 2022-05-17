@@ -1,4 +1,4 @@
-// Package udp impliments a UDP socket component that uses
+// Package udp implements a UDP socket component that uses
 // go channels to for sending and receiving UDP packets
 package udp
 
@@ -32,7 +32,7 @@ type UDP struct {
 	in   <-chan Packet
 	out  chan Packet
 
-	conn *net.UDPConn
+	110conn *net.UDPConn
 
 	ctx  context.Context
 	can  context.CancelFunc
@@ -107,7 +107,7 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 	}
 }
 
-// processInChan will handle the receving on the input channel and
+// processInChan will handle the receiving on the input channel and
 // output via the UDP connection
 func (u *UDP) processInChan(wg *sync.WaitGroup) {
 	defer wg.Done()

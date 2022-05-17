@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// RecoverFromClosedChan is used when it is OK if the channel is closed we are writting on
+// RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
 // This is not great using the string compare but the go runtime uses a generic error so we
 // can't trap this any other way.
 func RecoverFromClosedChan() {
