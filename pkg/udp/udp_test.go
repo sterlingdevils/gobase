@@ -13,6 +13,10 @@ func dispPacket(p Packet) {
 }
 
 // Example of how to create,receive and send packets
+//
+// This will create a UDP component and then send a packet,
+// receive the udp, then display it, and check the display is
+// correct.
 func Example() {
 	wg := new(sync.WaitGroup)
 
