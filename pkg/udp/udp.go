@@ -32,7 +32,7 @@ type UDP struct {
 	in   <-chan Packet
 	out  chan Packet
 
-	110conn *net.UDPConn
+	conn *net.UDPConn
 
 	ctx  context.Context
 	can  context.CancelFunc
