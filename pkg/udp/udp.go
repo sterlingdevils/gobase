@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/sterlingdevils/gobase/pkg/chantools"
 )
@@ -95,23 +96,25 @@ func (u *UDP) clientConn() error {
 //   wait for us until we get a packet.  This
 //   should be a defer wg.Done()
 func (u *UDP) processInUDP(wg *sync.WaitGroup) {
-	wg.Done()
+	defer wg.Done()
 
 	for {
+		// Check if the context is cancled
+		if u.ctx.Err() != nil {
+			return
+		}
+
 		buf := make([]byte, maxDSz)
+		u.conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 		n, a, err := u.conn.ReadFromUDP(buf)
+
 		if err != nil {
-			log.Println("readfromudp err: ", err)
+			//			log.Println("readfromudp err: ", err)
 			continue
 		}
 
 		p := Packet{Addr: a, Data: buf[:n]}
 		u.protectChanWrite(p)
-
-		// Check if the context is cancled
-		if u.ctx.Err() != nil {
-			return
-		}
 	}
 }
 
@@ -133,7 +136,6 @@ func (u *UDP) processInChan(wg *sync.WaitGroup) {
 				log.Println("udp write failed")
 			}
 		}
-
 	}
 }
 
