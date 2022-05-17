@@ -26,9 +26,8 @@ func Example() {
 	if err != nil {
 		log.Fatalln("error creating UDP")
 	}
-	defer udpcomp.Close()
 
-	// Wait for 1 second, then send a packet to our self, and display it, exit after 3 seconds
+	// Wait for 1 second, then send a packet to our self, and display it, exit
 loopexit:
 	for {
 		select {
@@ -42,9 +41,12 @@ loopexit:
 
 	// Test that when we close we will release the waitgroup
 	udpcomp.Close()
+
 	// Close the input channel so we stop reading
 	close(in)
 
+	// Wait for all Tasks to finish
 	wg.Wait()
+
 	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
 }
