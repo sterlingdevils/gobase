@@ -1,9 +1,30 @@
-// Package udp implements a UDP socket component that uses
-// go channels to for sending and receiving UDP packets
+/*
+  Package udp implements a UDP socket component that uses
+  go channels for sending and receiving UDP packets.
+
+  The main interface is two channels, one input channel
+  and one output channel.  Any Packet put onto the input channel
+  will be sent out a UDP network socket. Any received UDP packets
+  from the network socket will be placed onto the output channel.
+
+  The input channel is passed into this component so the caller can control the
+  life time of the channel.  It should be closed to cause the input channel
+  processing routine to finish.
+
+  For the SERVER mode, the component will listen on the passed in port, the
+  underling socket does not contain a destination address so it needs to be
+  set in the Packet that is put onto the input channel.
+
+  For the CLIENT mode, the component will Dial the address passed in, the
+  underling socket contains that address and the send will ignore any address
+  set in the Packet.  All outgoing Packets will be sent the the address passed
+  in the New call.
+*/
 package udp
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -13,30 +34,36 @@ import (
 )
 
 // Packet holds a UDP address and Data from the UDP
+// The channel types for the input and output channel are of this type
 type Packet struct {
 	// Addr holds a UDP address (with port) for the packet
+	// will be ignored if UDP is created in CLIENT mode
 	Addr *net.UDPAddr
 	// Data contains the data
 	Data []byte
 }
 
-const maxDSz = 65507
+// udp constants for the protocol
+const (
+	// Max size of a Packet Data slice
+	MaxPacketSize = 65507
+)
 
 // ConnType are constants for UDP socket type
 type ConnType int
 
 // Socket Connection type
 const (
-	// SERVER used to create a listen socket
-	SERVER ConnType = 1
-	// CLIENT used to create a connect to socket
-	CLIENT ConnType = 2
+	// SERVER is used to create a listen socket
+	SERVER = ConnType(1)
+	// CLIENT is used to create a connected socket (using Dial)
+	CLIENT = ConnType(2)
 )
 
 // UDP holds our private data for the component
 type UDP struct {
 	addr string
-	in   <-chan Packet
+	in   chan Packet
 	out  chan Packet
 
 	conn *net.UDPConn
@@ -49,7 +76,7 @@ type UDP struct {
 }
 
 // protectChanWrite sends to a channel with a context cancel to
-// exit on contect close
+// exit on contect close even if the write to channel is blocked
 func (u *UDP) protectChanWrite(t Packet) {
 	defer chantools.RecoverFromClosedChan()
 	select {
@@ -58,31 +85,24 @@ func (u *UDP) protectChanWrite(t Packet) {
 	}
 }
 
-// serverConn sets up the socket as a server
-func (u *UDP) serverConn() error {
+// startConn sets up the socket as a server
+func (u *UDP) startConn() error {
 	addr, err := net.ResolveUDPAddr("udp4", u.addr)
 	if err != nil {
 		return err
 	}
 
-	u.conn, err = net.ListenUDP("udp4", addr)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// clientConn sets up the socket as a client
-func (u *UDP) clientConn() error {
-	a, err := net.ResolveUDPAddr("udp4", u.addr)
-	if err != nil {
-		return err
-	}
-
-	u.conn, err = net.DialUDP("udp4", nil, a)
-	if err != nil {
-		return err
+	switch u.ct {
+	case SERVER:
+		u.conn, err = net.ListenUDP("udp4", addr)
+		if err != nil {
+			return err
+		}
+	case CLIENT:
+		u.conn, err = net.DialUDP("udp4", nil, addr)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -104,12 +124,11 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 			return
 		}
 
-		buf := make([]byte, maxDSz)
+		buf := make([]byte, MaxPacketSize)
 		u.conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 		n, a, err := u.conn.ReadFromUDP(buf)
 
 		if err != nil {
-			//			log.Println("readfromudp err: ", err)
 			continue
 		}
 
@@ -123,34 +142,33 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 func (u *UDP) processInChan(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for b := range u.in {
+	send := func(p Packet) {
+		if len(p.Data) > MaxPacketSize {
+			log.Printf("packet size exceeds max: %v\n", len(p.Data))
+			return
+		}
 		switch u.ct {
 		case SERVER:
-			_, err := u.conn.WriteToUDP(b.Data, b.Addr)
+			_, err := u.conn.WriteToUDP(p.Data, p.Addr)
 			if err != nil {
 				log.Println("udp write failed")
 			}
 		case CLIENT:
-			_, err := u.conn.Write(b.Data)
+			_, err := u.conn.Write(p.Data)
 			if err != nil {
 				log.Println("udp write failed")
 			}
 		}
 	}
-}
 
-// mainloop will setup to receive UDP and input channel processing
-func (u *UDP) mainloop(wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	wg.Add(1)
-	go u.processInUDP(wg)
-
-	wg.Add(1)
-	go u.processInChan(wg)
-
+	// wait for packets on the input channel or the context to close
 	for {
 		select {
+		case b, more := <-u.in:
+			if !more { // if the channel is closed, then we are done
+				return
+			}
+			send(b)
 		case <-u.ctx.Done():
 			return
 		}
@@ -161,7 +179,12 @@ func (u *UDP) mainloop(wg *sync.WaitGroup) {
 // Public Methods
 // ------------------------------------------------------------------------------------
 
-// OutputChan returns read only output channel that the incomming UDP packets will
+// InChan returns a write only channel that the incomming packets will be read from
+func (u *UDP) InChan() chan<- Packet {
+	return u.in
+}
+
+// OutputChan returns a read only output channel that the incomming UDP packets will
 // be placed onto
 func (u *UDP) OuputChan() <-chan Packet {
 	return u.out
@@ -181,23 +204,38 @@ func (u *UDP) Close() {
 // server mode work the same.
 // Either way it will read from in channel and then send the packet, and it will listen
 // for incomming packets on the socket and put them onto the output channel
-func New(wg *sync.WaitGroup, in1 <-chan Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
+//
+// This code uses the waitgoup and will add 1 for each routine it starts.  The Close method
+// needs to be called so we stop all our routines
+//
+//  NOTE:
+//    The input channel we will not close, we assume we do not own it
+func New(wg *sync.WaitGroup, in1 chan Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
 	c, cancel := context.WithCancel(context.Background())
 	udp := UDP{out: make(chan Packet, outChanSize), addr: addr, ctx: c, can: cancel, in: in1, ct: ct}
 
-	switch ct {
-	case SERVER:
-		if err := udp.serverConn(); err != nil {
-			return nil, err
-		}
-	case CLIENT:
-		if err := udp.clientConn(); err != nil {
-			return nil, err
-		}
+	if err := udp.startConn(); err != nil {
+		return nil, err
 	}
 
 	wg.Add(1)
-	go udp.mainloop(wg)
+	go udp.processInUDP(wg)
+
+	wg.Add(1)
+	go udp.processInChan(wg)
 
 	return &udp, nil
+}
+
+// NewSelfContained will create a UDP component with little fuss for the caller
+// it takes just a port.  It will always setup a SERVER mode component
+func NewSelfContained(port int) (*UDP, error) {
+	wg := new(sync.WaitGroup)
+	in := make(chan Packet, 1)
+	addr := fmt.Sprintf(":%v", port)
+	udpc, err := New(wg, in, addr, SERVER, 1)
+	if err != nil {
+		return nil, err
+	}
+	return udpc, nil
 }

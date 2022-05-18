@@ -11,6 +11,10 @@ import (
 	"github.com/sterlingdevils/gobase/pkg/udp"
 )
 
+const (
+	TESTPORT = 9092
+)
+
 // Example of how to create,receive and send packets
 //
 // This will create a UDP component and then send a packet,
@@ -32,7 +36,7 @@ loopexit:
 	for {
 		select {
 		case <-time.After(time.Second * 1):
-			in <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9092}, Data: []byte("Hello from Us.")}
+			in <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
 		case p := <-udpcomp.OuputChan():
 			fmt.Printf("%v: %v\n", p.Addr, p.Data)
 			break loopexit
@@ -48,5 +52,26 @@ loopexit:
 	// Wait for all Tasks to finish
 	wg.Wait()
 
+	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
+}
+
+func ExampleNewSelfContained() {
+	udpcomp, err := udp.NewSelfContained(TESTPORT)
+	if err != nil {
+		fmt.Printf("failed to create udp component")
+	}
+
+	// Wait for 1 second, then send a packet to our self, and display it, exit
+
+loopexit:
+	for {
+		select {
+		case <-time.After(time.Second * 1):
+			udpcomp.InChan() <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
+		case p := <-udpcomp.OuputChan():
+			fmt.Printf("%v: %v\n", p.Addr, p.Data)
+			break loopexit
+		}
+	}
 	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
 }
