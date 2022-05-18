@@ -171,6 +171,7 @@ func (u *UDP) OuputChan() <-chan Packet {
 func (u *UDP) Close() {
 	u.can()
 	u.once.Do(func() {
+		u.conn.Close()
 		close(u.out)
 	})
 }

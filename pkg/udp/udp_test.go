@@ -19,7 +19,7 @@ import (
 func Example() {
 	wg := new(sync.WaitGroup)
 
-	in := make(chan udp.Packet, 5)
+	in := make(chan udp.Packet, 1)
 
 	// Must pass in the input channel as we dont assume we own it
 	udpcomp, err := udp.New(wg, in, ":9092", udp.SERVER, 1)
