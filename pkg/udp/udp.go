@@ -19,6 +19,9 @@
   underling socket contains that address and the send will ignore any address
   set in the Packet.  All outgoing Packets will be sent the the address passed
   in the New call.
+
+  New(port) will handle creating the waitgroup and input channel
+  NewwithParams(...) can be give the caller more options
 */
 package udp
 
@@ -199,7 +202,11 @@ func (u *UDP) Close() {
 	})
 }
 
-// New will return a UDP connection component,  it can be setup with as a Server to listen
+// ------------------------------------------------------------------------------------
+// New Functions to create a UDP
+// ------------------------------------------------------------------------------------
+
+// NewwithParams will return a UDP connection component,  it can be setup with as a Server to listen
 // for incomming connections, or a client to connect out to a server.  After that client and
 // server mode work the same.
 // Either way it will read from in channel and then send the packet, and it will listen
@@ -210,7 +217,7 @@ func (u *UDP) Close() {
 //
 //  NOTE:
 //    The input channel we will not close, we assume we do not own it
-func New(wg *sync.WaitGroup, in1 chan Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
+func NewwithParams(wg *sync.WaitGroup, in1 chan Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
 	c, cancel := context.WithCancel(context.Background())
 	udp := UDP{out: make(chan Packet, outChanSize), addr: addr, ctx: c, can: cancel, in: in1, ct: ct}
 
@@ -227,13 +234,11 @@ func New(wg *sync.WaitGroup, in1 chan Packet, addr string, ct ConnType, outChanS
 	return &udp, nil
 }
 
-// NewSelfContained will create a UDP component with little fuss for the caller
+// New will create a UDP component with little fuss for the caller
 // it takes just a port.  It will always setup a SERVER mode component
-func NewSelfContained(port int) (*UDP, error) {
-	wg := new(sync.WaitGroup)
-	in := make(chan Packet, 1)
+func New(port int) (*UDP, error) {
 	addr := fmt.Sprintf(":%v", port)
-	udpc, err := New(wg, in, addr, SERVER, 1)
+	udpc, err := NewwithParams(new(sync.WaitGroup), make(chan Packet, 1), addr, SERVER, 1)
 	if err != nil {
 		return nil, err
 	}

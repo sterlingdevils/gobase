@@ -28,7 +28,7 @@ func testUDP(wg *sync.WaitGroup) {
 	//  Then get the output Channel
 	//  Use it
 	in := make(chan udp.Packet, 5)
-	rx, err := udp.New(wg, in, "localhost:9999", udp.CLIENT, 1)
+	rx, err := udp.NewwithParams(wg, in, "localhost:9999", udp.CLIENT, 1)
 	if err != nil {
 		log.Fatalln("error creating UDP")
 	}

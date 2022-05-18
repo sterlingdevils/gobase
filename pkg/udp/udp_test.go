@@ -20,13 +20,13 @@ const (
 // This will create a UDP component and then send a packet,
 // receive the udp, then display it, and check the display is
 // correct.
-func Example() {
+func ExampleNewwithParams() {
 	wg := new(sync.WaitGroup)
 
 	in := make(chan udp.Packet, 1)
 
 	// Must pass in the input channel as we dont assume we own it
-	udpcomp, err := udp.New(wg, in, ":9092", udp.SERVER, 1)
+	udpcomp, err := udp.NewwithParams(wg, in, ":9092", udp.SERVER, 1)
 	if err != nil {
 		log.Fatalln("error creating UDP")
 	}
@@ -55,8 +55,8 @@ loopexit:
 	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
 }
 
-func ExampleNewSelfContained() {
-	udpcomp, err := udp.NewSelfContained(TESTPORT)
+func ExampleNew() {
+	udpcomp, err := udp.New(TESTPORT)
 	if err != nil {
 		fmt.Printf("failed to create udp component")
 	}
