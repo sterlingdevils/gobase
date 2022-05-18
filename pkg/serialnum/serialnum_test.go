@@ -9,9 +9,17 @@ import (
 
 func Example() {
 	in := []byte("Slice1")
+	fmt.Println(len(in))
 	fmt.Println(in)
 	in = serialnum.Add(in)
-	fmt.Println(in)
+	fmt.Println(len(in))
 	in = serialnum.Remove(in)
 	fmt.Println(in)
+	fmt.Println(len(in))
+	// Output:
+	// 6
+	// [83 108 105 99 101 49]
+	// 14
+	// [83 108 105 99 101 49]
+	// 6
 }
