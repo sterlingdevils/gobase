@@ -61,17 +61,12 @@ func ExampleNewSelfContained() {
 		fmt.Printf("failed to create udp component")
 	}
 
-	// Wait for 1 second, then send a packet to our self, and display it, exit
+	// Send a Packet
+	udpcomp.InChan() <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
 
-loopexit:
-	for {
-		select {
-		case <-time.After(time.Second * 1):
-			udpcomp.InChan() <- udp.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
-		case p := <-udpcomp.OuputChan():
-			fmt.Printf("%v: %v\n", p.Addr, p.Data)
-			break loopexit
-		}
-	}
+	// Receive a Packet and Display it
+	p := <-udpcomp.OuputChan()
+	fmt.Printf("%v: %v\n", p.Addr, p.Data)
+
 	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
 }
