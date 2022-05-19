@@ -34,7 +34,7 @@ func ExampleRetry_inout() {
 	}
 
 	go func() {
-		time.Sleep(10 * time.Second)
+		time.Sleep(3 * time.Second)
 		retry.Close()
 	}()
 
@@ -43,6 +43,16 @@ func ExampleRetry_inout() {
 	}
 
 	// Output:
+	// 0
+	// 1
+	// 2
+	// 3
+	// 4
+	// 5
+	// 6
+	// 7
+	// 8
+	// 9
 }
 
 func ExampleRetry_pointercheck() {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/sterlingdevils/gobase/pkg/chantools"
 	"github.com/sterlingdevils/gobase/pkg/obj"
+	"github.com/sterlingdevils/gobase/retrycontainer"
 )
 
 type Retry struct {
@@ -13,13 +14,13 @@ type Retry struct {
 	objout chan *obj.Obj
 	ackin  chan uint64
 
-	retryc chan *obj.Obj
-
 	wg sync.WaitGroup
 
 	ctx  context.Context
 	can  context.CancelFunc
 	once sync.Once
+
+	retrycontainer *retrycontainer.RetryContainer[uint64, *obj.Obj]
 }
 
 const (
@@ -61,7 +62,7 @@ func (r *Retry) checksendout(o *obj.Obj) {
 	// Send to retry channel
 	select {
 	case <-o.Ctx.Done():
-	case r.retryc <- o:
+	case r.retrycontainer.InChan() <- o:
 	case <-r.ctx.Done():
 		return
 	}
@@ -76,9 +77,9 @@ func (r *Retry) mainloop() {
 		case o := <-r.objin:
 			r.checksendout(o)
 		case a := <-r.ackin:
-			_ = a
-		case o := <-r.retryc:
-			r.checksendout(o)
+			r.retrycontainer.DelChan() <- a
+		case o := <-r.retrycontainer.OutChan():
+			_ = o
 		case <-r.ctx.Done():
 			return
 		}
@@ -91,6 +92,9 @@ func (r *Retry) Close() {
 	r.once.Do(func() {
 		close(r.objout)
 	})
+
+	// close the retry container
+	r.retrycontainer.Close()
 }
 
 // New
@@ -99,9 +103,15 @@ func New() (*Retry, error) {
 	oin := make(chan *obj.Obj, CHANSIZE)
 	oout := make(chan *obj.Obj, CHANSIZE)
 	ain := make(chan uint64, CHANSIZE)
-	retryc := make(chan *obj.Obj, CHANSIZE)
 
-	r := Retry{objin: oin, objout: oout, ackin: ain, ctx: c, can: cancel, retryc: retryc}
+	r := Retry{objin: oin, objout: oout, ackin: ain, ctx: c, can: cancel}
+
+	// Create a retry container
+	var err error
+	r.retrycontainer, err = retrycontainer.New[uint64, *obj.Obj]()
+	if err != nil {
+		return nil, err
+	}
 
 	r.wg.Add(1)
 	go r.mainloop()
