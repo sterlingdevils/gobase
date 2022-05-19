@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"math/rand"
+	"sync"
 	"sync/atomic"
-	"time"
 )
 
 const (
@@ -14,40 +14,47 @@ const (
 	SERIALNUMSIZE = 8
 )
 
-var (
-	// Holds the current incremented serial number
-	currentSn uint64
-)
-
-// init is called when this package is loaded
-func init() {
-	currentSn = 0
-	rand.Seed(time.Now().UnixNano())
+type SerialNum struct {
+	// Holds the current incremented serial number, This is a Package wide Global
+	currentSn    uint64
+	currentMutex sync.Mutex
 }
 
-// Adds an incrementing serial number to byte slice
-func AddInc(in []byte) ([]byte, error) {
-	sn := make([]byte, SERIALNUMSIZE)
-	binary.LittleEndian.PutUint64(sn, currentSn)
+// addsn will take a uint64 and prepend it to the in slice, returns a new slice based on a new array
+func addsn(in []byte, sn uint64) []byte {
+	data := make([]byte, SERIALNUMSIZE+len(in))
+	binary.LittleEndian.PutUint64(data, sn)
+	copy(data[SERIALNUMSIZE:], in)
 
-	// Add one to currentSn safely
-	atomic.AddUint64(&currentSn, 1)
-
-	return append(sn, in...), nil
+	return data
 }
 
-// Adds serial number to byte slice
-func AddRandom(in []byte) ([]byte, error) {
-	sn := make([]byte, SERIALNUMSIZE)
-	_, err := rand.Read(sn)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(sn, in...), nil
+// Next will return the next sn in sequence
+func (s *SerialNum) Next() uint64 {
+	s.currentMutex.Lock()
+	sn := atomic.LoadUint64(&s.currentSn)
+	atomic.AddUint64(&s.currentSn, 1)
+	s.currentMutex.Unlock()
+	return sn
 }
 
-// Removes serial number from byte slice or returns empty array if the size is too small
+// AddInc adds an incrementing serial number to byte slice
+func (s *SerialNum) AddInc(in []byte) []byte {
+	return addsn(in, s.Next())
+}
+
+// AddSn adds a passed in serial number to byte slice
+func AddSn(in []byte, sn uint64) []byte {
+	return addsn(in, sn)
+}
+
+// AddRandom adds a random serial number to byte slice
+func AddRandom(in []byte) []byte {
+	sn := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
+	return addsn(in, sn)
+}
+
+// Remove will split the serial number from byte slice
 // returns the data that is after the sn, the sn, and an error it there was a problem
 func Remove(in []byte) (data []byte, sn []byte, err error) {
 	if len(in) < SERIALNUMSIZE {
@@ -65,4 +72,20 @@ func Sn(in []byte) (sn []byte, err error) {
 	}
 
 	return in[:SERIALNUMSIZE], nil
+}
+
+// Sn will return a slice with the serial number
+// note: The returned slice has the same underlying array
+func Uint64(in []byte) (sn uint64, err error) {
+	if len(in) < SERIALNUMSIZE {
+		return 0, errors.New("passed in slice is smaller than a serialnumber")
+	}
+
+	return binary.LittleEndian.Uint64(in), nil
+}
+
+// New returns a SerialNum component, each instant has its own sn counter
+func New() *SerialNum {
+	sn := SerialNum{currentSn: 0}
+	return &sn
 }

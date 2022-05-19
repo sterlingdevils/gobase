@@ -12,7 +12,7 @@ func Example() {
 	fmt.Println(len(in))
 	fmt.Println(in)
 
-	in, _ = serialnum.AddRandom(in)
+	in = serialnum.AddRandom(in)
 	fmt.Println(len(in))
 
 	in, _, _ = serialnum.Remove(in)
@@ -26,21 +26,20 @@ func Example() {
 	// 6
 }
 
-func ExampleAddInc() {
+// ExampleNew
+func ExampleNew() {
 	in := []byte("Slice1")
-	fmt.Println(len(in))
-	fmt.Println(in)
-
-	in, _ = serialnum.AddInc(in)
-	fmt.Println(in)
-
 	in2 := []byte("Slice2")
-	in2, _ = serialnum.AddInc(in2)
-	fmt.Println(in2)
 
-	// Output:
-	// 6
-	// [83 108 105 99 101 49]
-	// [0 0 0 0 0 0 0 0 83 108 105 99 101 49]
-	// [1 0 0 0 0 0 0 0 83 108 105 99 101 50]
+	sncomp := serialnum.New()
+
+	in = sncomp.AddInc(in)
+	in2 = sncomp.AddInc(in2)
+
+	s1, _ := serialnum.Uint64(in)
+	s2, _ := serialnum.Uint64(in2)
+
+	fmt.Print(s2 - s1)
+
+	// Output: 1
 }

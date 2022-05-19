@@ -129,8 +129,8 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 
 		buf := make([]byte, MaxPacketSize)
 		u.conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-		n, a, err := u.conn.ReadFromUDP(buf)
 
+		n, a, err := u.conn.ReadFromUDP(buf)
 		if err != nil {
 			continue
 		}
