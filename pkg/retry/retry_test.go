@@ -7,6 +7,7 @@ import (
 
 	"github.com/sterlingdevils/gobase/pkg/obj"
 	"github.com/sterlingdevils/gobase/pkg/retry"
+	"github.com/sterlingdevils/gobase/pkg/serialnum"
 )
 
 func Example() {
@@ -16,6 +17,31 @@ func Example() {
 	}
 
 	retry.Close()
+	// Output:
+}
+
+func ExampleRetry_inout() {
+	sn := serialnum.New()
+	retry, err := retry.New()
+	if err != nil {
+		log.Fatal("error on create")
+	}
+
+	for i := 0; i < 10; i++ {
+		o, _ := obj.New(2 * time.Second)
+		o.Sn = sn.Next()
+		retry.ObjIn() <- o
+	}
+
+	go func() {
+		time.Sleep(10 * time.Second)
+		retry.Close()
+	}()
+
+	for o := range retry.ObjOut() {
+		fmt.Println(o.Sn)
+	}
+
 	// Output:
 }
 
