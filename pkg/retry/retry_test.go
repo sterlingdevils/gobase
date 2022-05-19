@@ -19,7 +19,7 @@ func Example() {
 	// Output:
 }
 
-func ExampleRetry() {
+func ExampleRetry_pointercheck() {
 	retry, err := retry.New()
 	if err != nil {
 		log.Fatal("error on create")
@@ -44,4 +44,13 @@ func ExampleRetry() {
 	// Output:
 	// 5
 	// 5
+}
+
+func ExampleRetry_Close() {
+	retry, err := retry.New()
+	if err != nil {
+		log.Fatal("error on create")
+	}
+	retry.Close()
+	// Output:
 }
