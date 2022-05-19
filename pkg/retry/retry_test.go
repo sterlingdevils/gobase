@@ -19,7 +19,7 @@ func Example() {
 	// Output:
 }
 
-func ExampleInOut() {
+func ExampleRetry() {
 	retry, err := retry.New()
 	if err != nil {
 		log.Fatal("error on create")
