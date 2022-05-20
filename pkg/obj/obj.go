@@ -13,6 +13,11 @@ type Obj struct {
 	Data []byte
 }
 
+// Context returns the private context
+func (o Obj) Context() context.Context {
+	return o.Ctx
+}
+
 func (o Obj) Key() uint64 {
 	return o.Sn
 }

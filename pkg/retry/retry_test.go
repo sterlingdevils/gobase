@@ -39,7 +39,7 @@ func ExampleRetry_inout() {
 	}()
 
 	for o := range retry.ObjOut() {
-		fmt.Println(o.Sn)
+		fmt.Println(o.Key())
 	}
 
 	// Output:
@@ -74,7 +74,7 @@ func ExampleRetry_pointercheck() {
 	}()
 
 	for o := range retry.ObjOut() {
-		fmt.Println(o.Sn)
+		fmt.Println(o.Key())
 	}
 
 	// Output:

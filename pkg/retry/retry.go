@@ -6,12 +6,20 @@ import (
 
 	"github.com/sterlingdevils/gobase/pkg/chanbasedcontainer"
 	"github.com/sterlingdevils/gobase/pkg/chantools"
-	"github.com/sterlingdevils/gobase/pkg/obj"
 )
 
+type Contextable interface {
+	Context() context.Context
+}
+
+type Retryable interface {
+	chanbasedcontainer.Indexable[uint64]
+	Contextable
+}
+
 type Retry struct {
-	objin  chan *obj.Obj
-	objout chan *obj.Obj
+	objin  chan Retryable
+	objout chan Retryable
 	ackin  chan uint64
 
 	wg sync.WaitGroup
@@ -20,7 +28,7 @@ type Retry struct {
 	can  context.CancelFunc
 	once sync.Once
 
-	retrycontainer *chanbasedcontainer.ChanBasedContainer[uint64, *obj.Obj]
+	retrycontainer *chanbasedcontainer.ChanBasedContainer[uint64, Retryable]
 }
 
 const (
@@ -28,12 +36,12 @@ const (
 )
 
 // ObjIn
-func (r *Retry) ObjIn() chan<- *obj.Obj {
+func (r *Retry) ObjIn() chan<- Retryable {
 	return r.objin
 }
 
 // ObjOut
-func (r *Retry) ObjOut() <-chan *obj.Obj {
+func (r *Retry) ObjOut() <-chan Retryable {
 	return r.objout
 }
 
@@ -43,17 +51,17 @@ func (r *Retry) AckIn() chan<- uint64 {
 }
 
 // chcecksendout do a safe write to the output channel
-func (r *Retry) checksendout(o *obj.Obj) {
+func (r *Retry) checksendout(o Retryable) {
 	defer chantools.RecoverFromClosedChan()
 
 	// Check if context expired, if so just drop it
-	if o.Ctx.Err() != nil {
+	if o.Context().Err() != nil {
 		return
 	}
 
 	// Send to output channel
 	select {
-	case <-o.Ctx.Done():
+	case <-o.Context().Done():
 	case r.objout <- o:
 	case <-r.ctx.Done():
 		return
@@ -61,7 +69,7 @@ func (r *Retry) checksendout(o *obj.Obj) {
 
 	// Send to retry channel
 	select {
-	case <-o.Ctx.Done():
+	case <-o.Context().Done():
 	case r.retrycontainer.InChan() <- o:
 	case <-r.ctx.Done():
 		return
@@ -100,15 +108,15 @@ func (r *Retry) Close() {
 // New
 func New() (*Retry, error) {
 	c, cancel := context.WithCancel(context.Background())
-	oin := make(chan *obj.Obj, CHANSIZE)
-	oout := make(chan *obj.Obj, CHANSIZE)
+	oin := make(chan Retryable, CHANSIZE)
+	oout := make(chan Retryable, CHANSIZE)
 	ain := make(chan uint64, CHANSIZE)
 
 	r := Retry{objin: oin, objout: oout, ackin: ain, ctx: c, can: cancel}
 
 	// Create a retry container
 	var err error
-	r.retrycontainer, err = chanbasedcontainer.New[uint64, *obj.Obj]()
+	r.retrycontainer, err = chanbasedcontainer.New[uint64, Retryable]()
 	if err != nil {
 		return nil, err
 	}
