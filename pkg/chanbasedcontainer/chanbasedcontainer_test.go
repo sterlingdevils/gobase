@@ -44,15 +44,6 @@ func ExampleChanBasedContainer_InChan() {
 	// Output:
 }
 
-// ExampleChanBasedContainer_Add
-func ExampleChanBasedContainer_Add() {
-	node := &Node{key: 7, data: []byte("This is a test")}
-	r, _ := chanbasedcontainer.New[uint64, *Node]()
-	r.Add(node)
-	r.Close()
-	// Output:
-}
-
 func ExampleChanBasedContainer_testfirst() {
 	r, _ := chanbasedcontainer.New[uint64, *Node]()
 	n1 := &Node{key: 1, data: []byte("I don't care what it is")}

@@ -17,10 +17,7 @@ package chanbasedcontainer
 import (
 	"container/list"
 	"context"
-	"errors"
 	"sync"
-
-	"github.com/sterlingdevils/gobase/pkg/chantools"
 )
 
 const (
@@ -32,6 +29,7 @@ type Indexable[K comparable] interface {
 }
 
 type ChanBasedContainer[K comparable, T Indexable[K]] struct {
+	// We use map to hold the thing, and an ordered list of keys
 	tmap  map[K]T
 	tlist *list.List
 
@@ -43,11 +41,9 @@ type ChanBasedContainer[K comparable, T Indexable[K]] struct {
 	can  context.CancelFunc
 	once sync.Once
 
-	// Holds the thing we are trying to send
+	// Holds the current thing we are trying to send
 	onetosend *T
 }
-
-//func (r *ChanBasedContainer[K, T])
 
 func (r *ChanBasedContainer[_, T]) addT(thing T) {
 	k := thing.Key()
@@ -107,37 +103,9 @@ func (r *ChanBasedContainer[K, T]) pop() *T {
 // 	return len(r.tmap) + 1
 // }
 
-// Add will place thing onto the in channel
-// this can block until ready
-func (r *ChanBasedContainer[_, T]) Add(thing T) {
-	r.inchan <- thing
-}
-
-// next will return the first item in the container
-// this will block until one is ready
-func (r *ChanBasedContainer[_, T]) Next() (T, error) {
-	select {
-	case thing := <-r.outchan:
-		return thing, nil
-	case <-r.ctx.Done():
-		return *new(T), errors.New("container is closed")
-	}
-}
-
-// Delete will place key onto the delete channel
-// this can block until ready
-func (r *ChanBasedContainer[K, _]) Delete(key K) {
-	r.delchan <- key
-}
-
 // InChan
 func (r *ChanBasedContainer[_, T]) InChan() chan<- T {
 	return r.inchan
-}
-
-// OutChan
-func (r *ChanBasedContainer[_, T]) OutChan() <-chan T {
-	return r.outchan
 }
 
 // DelChan
@@ -145,19 +113,35 @@ func (r *ChanBasedContainer[K, _]) DelChan() chan<- K {
 	return r.delchan
 }
 
+// OutChan
+func (r *ChanBasedContainer[_, T]) OutChan() <-chan T {
+	return r.outchan
+}
+
 // Close the ChanBasedContainer
 func (r *ChanBasedContainer[_, _]) Close() {
 	// Cancel our context
 	r.can()
-	r.once.Do(func() {
-		close(r.outchan)
-	})
+}
+
+// RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
+// This is not great using the string compare but the go runtime uses a generic error so we
+// can't trap this any other way.
+func recoverFromClosedChan() {
+	if r := recover(); r != nil {
+		if e, ok := r.(error); ok && e.Error() == "send on closed channel" {
+			return
+		}
+		panic(r)
+	}
 }
 
 // mainloop
 // If the container is empty, only listen for
 func (r *ChanBasedContainer[_, T]) mainloop() {
-	defer chantools.RecoverFromClosedChan()
+	defer close(r.outchan)
+	defer recoverFromClosedChan()
+
 	for {
 		// Check if we have one ready to send
 		if r.onetosend == nil {
