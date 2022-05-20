@@ -47,12 +47,12 @@ func ExampleChanBasedContainer_Add() {
 }
 
 func ExampleChanBasedContainer_fulltest() {
-	node := &Node{key: 7, data: []byte("This is a test")}
 	r, _ := chanbasedcontainer.New[uint64, *Node]()
-	r.InChan() <- node
+	r.InChan() <- &Node{key: 1, data: []byte("I don't care what it is")}
+	r.InChan() <- &Node{key: 2, data: []byte("This is a test")}
 	n := <-r.OutChan()
 	fmt.Printf("%v, %v", n.key, n.data)
 	r.Close()
 	// Output:
-	// 7, [84 104 105 115 32 105 115 32 97 32 116 101 115 116]
+	// 2, [84 104 105 115 32 105 115 32 97 32 116 101 115 116]
 }
