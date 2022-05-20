@@ -17,7 +17,7 @@ package chanbasedcontainer
 import (
 	"container/list"
 	"context"
-	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -37,12 +37,13 @@ type ChanBasedContainer[K comparable, T Indexable[K]] struct {
 	outchan chan T
 	delchan chan K
 
-	ctx  context.Context
-	can  context.CancelFunc
-	once sync.Once
+	ctx context.Context
+	can context.CancelFunc
 
 	// Holds the current thing we are trying to send
 	onetosend *T
+
+	approxSize int32
 }
 
 func (r *ChanBasedContainer[_, T]) addT(thing T) {
@@ -88,20 +89,11 @@ func (r *ChanBasedContainer[K, T]) pop() *T {
 	return &t
 }
 
-// TODO:  Removed as these are not thread safe
-// func (r *ChanBasedContainer[_, _]) IsEmpty() bool {
-// 	if r.onetosend == nil {
-// 		return len(r.tmap) == 0
-// 	}
-// 	return false
-// }
-
-// func (r *ChanBasedContainer[_, _]) QueueSize() int {
-// 	if r.onetosend == nil {
-// 		return len(r.tmap)
-// 	}
-// 	return len(r.tmap) + 1
-// }
+// ApproxSize returns something close to the number of items in the container, maybe
+// only updated at the start of each mainloop
+func (r *ChanBasedContainer[_, _]) ApproxSize() int32 {
+	return atomic.LoadInt32(&r.approxSize)
+}
 
 // InChan
 func (r *ChanBasedContainer[_, T]) InChan() chan<- T {
@@ -149,6 +141,8 @@ func (r *ChanBasedContainer[_, T]) mainloop() {
 		}
 
 		if r.onetosend == nil {
+			// Save the current size
+			atomic.StoreInt32(&r.approxSize, int32(len(r.tmap)))
 			// None to send so don't select on output channel
 			select {
 			case t := <-r.inchan:
@@ -159,6 +153,9 @@ func (r *ChanBasedContainer[_, T]) mainloop() {
 				return
 			}
 		} else {
+			// Save the current size
+			atomic.StoreInt32(&r.approxSize, int32(len(r.tmap))+1)
+
 			// We have one to send so select on output channel
 			select {
 			case r.outchan <- *r.onetosend:
