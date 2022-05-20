@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"sync"
+
+	"github.com/sterlingdevils/gobase/pkg/chantools"
 )
 
 const (
@@ -39,8 +41,6 @@ func (r *ChanBasedContainer[_, T]) addT(thing T) {
 
 	r.objlist.PushBack(k)
 	r.objmap[k] = thing
-
-	return
 }
 
 func (r *ChanBasedContainer[K, _]) delK(index K) {
@@ -114,7 +114,9 @@ func (r *ChanBasedContainer[_, _]) Close() {
 	})
 }
 
-func (r *ChanBasedContainer[_, _]) mainloop() {
+func (r *ChanBasedContainer[_, T]) mainloop() {
+	defer chantools.RecoverFromClosedChan()
+	var onetosend *T
 	for {
 		if r.IsEmpty() {
 			select {
@@ -126,12 +128,24 @@ func (r *ChanBasedContainer[_, _]) mainloop() {
 				return
 			}
 		} else {
+			if onetosend == nil {
+				o := r.pop()
+				onetosend = &o
+			}
 			select {
 			case t := <-r.inchan:
 				r.addT(t)
 			case k := <-r.delchan:
-				r.delK(k)
-			case r.outchan <- r.pop():
+				if onetosend == nil {
+					break
+				}
+				if (*onetosend).Key() == k {
+					onetosend = nil
+				} else {
+					r.delK(k)
+				}
+			case r.outchan <- *onetosend:
+				onetosend = nil
 			case <-r.ctx.Done():
 				return
 			}
