@@ -6,7 +6,7 @@ import (
 
 	"github.com/sterlingdevils/gobase/pkg/chantools"
 	"github.com/sterlingdevils/gobase/pkg/obj"
-	"github.com/sterlingdevils/gobase/retrycontainer"
+	"github.com/sterlingdevils/gobase/pkg/retrycontainer"
 )
 
 type Retry struct {

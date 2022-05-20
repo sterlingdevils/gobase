@@ -2,7 +2,7 @@ package retrycontainer_test
 
 import (
 	"github.com/sterlingdevils/gobase/pkg/obj"
-	"github.com/sterlingdevils/gobase/retrycontainer"
+	"github.com/sterlingdevils/gobase/pkg/retrycontainer"
 )
 
 func ExampleRetryContainer() {
