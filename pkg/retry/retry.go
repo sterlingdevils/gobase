@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/sterlingdevils/gobase/pkg/chanbasedcontainer"
 	"github.com/sterlingdevils/gobase/pkg/chantools"
 	"github.com/sterlingdevils/gobase/pkg/obj"
-	"github.com/sterlingdevils/gobase/pkg/retrycontainer"
 )
 
 type Retry struct {
@@ -20,7 +20,7 @@ type Retry struct {
 	can  context.CancelFunc
 	once sync.Once
 
-	retrycontainer *retrycontainer.RetryContainer[uint64, *obj.Obj]
+	retrycontainer *chanbasedcontainer.ChanBasedContainer[uint64, *obj.Obj]
 }
 
 const (
@@ -108,7 +108,7 @@ func New() (*Retry, error) {
 
 	// Create a retry container
 	var err error
-	r.retrycontainer, err = retrycontainer.New[uint64, *obj.Obj]()
+	r.retrycontainer, err = chanbasedcontainer.New[uint64, *obj.Obj]()
 	if err != nil {
 		return nil, err
 	}

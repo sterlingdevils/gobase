@@ -13,6 +13,10 @@ type Obj struct {
 	Data []byte
 }
 
+func (o Obj) Key() uint64 {
+	return o.Sn
+}
+
 func New(timeout time.Duration) (*Obj, error) {
 	c, cancel := context.WithTimeout(context.Background(), timeout)
 	o := Obj{Ctx: c, Can: cancel}
