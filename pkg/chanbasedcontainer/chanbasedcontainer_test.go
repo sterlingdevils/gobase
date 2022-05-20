@@ -1,6 +1,8 @@
 package chanbasedcontainer_test
 
 import (
+	"fmt"
+
 	"github.com/sterlingdevils/gobase/pkg/chanbasedcontainer"
 )
 
@@ -42,4 +44,15 @@ func ExampleChanBasedContainer_Add() {
 	r.Add(node)
 	r.Close()
 	// Output:
+}
+
+func ExampleChanBasedContainer_fulltest() {
+	node := &Node{key: 7, data: []byte("This is a test")}
+	r, _ := chanbasedcontainer.New[uint64, *Node]()
+	r.InChan() <- node
+	n := <-r.OutChan()
+	fmt.Printf("%v, %v", n.key, n.data)
+	r.Close()
+	// Output:
+	// 7, [84 104 105 115 32 105 115 32 97 32 116 101 115 116]
 }
