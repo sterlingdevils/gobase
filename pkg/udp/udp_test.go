@@ -20,13 +20,13 @@ const (
 // This will create a UDP component and then send a packet,
 // receive the udp, then display it, and check the display is
 // correct.
-func ExampleNewwithParams() {
+func ExampleNewWithParams() {
 	wg := new(sync.WaitGroup)
 
 	in := make(chan udp.Packet, 1)
 
 	// Must pass in the input channel as we dont assume we own it
-	udpcomp, err := udp.NewwithParams(wg, in, ":9092", udp.SERVER, 1)
+	udpcomp, err := udp.NewWithParams(wg, in, ":9092", udp.SERVER, 1)
 	if err != nil {
 		log.Fatalln("error creating UDP")
 	}
