@@ -7,15 +7,15 @@ import (
 
 type Obj struct {
 	Sn  uint64
-	Ctx context.Context
-	Can context.CancelFunc
+	ctx context.Context
+	can context.CancelFunc
 
 	Data []byte
 }
 
 // Context returns the private context
 func (o Obj) Context() context.Context {
-	return o.Ctx
+	return o.ctx
 }
 
 func (o *Obj) Key() uint64 {
@@ -24,7 +24,7 @@ func (o *Obj) Key() uint64 {
 
 func New(timeout time.Duration) (*Obj, error) {
 	c, cancel := context.WithTimeout(context.Background(), timeout)
-	o := Obj{Ctx: c, Can: cancel}
+	o := Obj{ctx: c, can: cancel}
 
 	return &o, nil
 }
