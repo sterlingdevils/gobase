@@ -13,7 +13,7 @@ type Contextable interface {
 }
 
 type Retryable interface {
-	chanbasedcontainer.Indexable[uint64]
+	chanbasedcontainer.Keyable[uint64]
 	Contextable
 }
 

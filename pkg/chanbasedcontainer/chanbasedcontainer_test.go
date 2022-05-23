@@ -38,13 +38,13 @@ func readAndPrint(num int, c <-chan *Node) {
 }
 
 func ExampleNew() {
-	_, _ = chanbasedcontainer.New[KeyType, *Node]()
+	_, _ = chanbasedcontainer.New[KeyType, Node2]()
 	// Output:
 }
 
 // ExampleChanBasedContainer_Close
 func ExampleChanBasedContainer_Close() {
-	r, _ := chanbasedcontainer.New[KeyType, *Node]()
+	r, _ := chanbasedcontainer.New[KeyType, Node2]()
 	r.Close()
 	// Output:
 }

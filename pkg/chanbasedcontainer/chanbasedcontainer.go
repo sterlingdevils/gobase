@@ -24,11 +24,11 @@ const (
 	CHANSIZE = 0
 )
 
-type Indexable[K comparable] interface {
+type Keyable[K comparable] interface {
 	Key() K
 }
 
-type ChanBasedContainer[K comparable, T Indexable[K]] struct {
+type ChanBasedContainer[K comparable, T Keyable[K]] struct {
 	// We use map to hold the thing, and an ordered list of keys
 	tmap  map[K]T
 	tlist *list.List
@@ -89,8 +89,8 @@ func (r *ChanBasedContainer[K, T]) pop() *T {
 	return &t
 }
 
-// ApproxSize returns something close to the number of items in the container, maybe
-// only updated at the start of each mainloop
+// ApproxSize returns something close to the number of items in the container, maybe.
+// Only updated at the start of each mainloop
 func (r *ChanBasedContainer[_, _]) ApproxSize() int32 {
 	return atomic.LoadInt32(&r.approxSize)
 }
@@ -174,7 +174,7 @@ func (r *ChanBasedContainer[_, T]) mainloop() {
 
 // New returns a reference to a a container or error if there was a problem
 // for performance T should be a pointer
-func New[K comparable, T Indexable[K]]() (*ChanBasedContainer[K, T], error) {
+func New[K comparable, T Keyable[K]]() (*ChanBasedContainer[K, T], error) {
 	con, cancel := context.WithCancel(context.Background())
 	r := ChanBasedContainer[K, T]{
 		tmap:    make(map[K]T),
