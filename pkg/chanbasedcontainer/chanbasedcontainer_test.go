@@ -170,11 +170,9 @@ func ExampleChanBasedContainer_ApproxSize() {
 	numwrite := 100
 	r, _ := chanbasedcontainer.New[KeyType, *Node]()
 
-	ni := &Node{key: 1}
-
 	s1 := r.ApproxSize()
 
-	r.InChan() <- ni
+	r.InChan() <- &Node{key: 1}
 	s2 := r.ApproxSize()
 
 	<-r.OutChan()
@@ -182,8 +180,7 @@ func ExampleChanBasedContainer_ApproxSize() {
 	s3 := r.ApproxSize()
 
 	for i := 0; i < numwrite; i++ {
-		n := &Node{key: KeyType(i)}
-		r.InChan() <- n
+		r.InChan() <- &Node{key: KeyType(i)}
 	}
 	time.Sleep(10 * time.Millisecond) // Have to wait a little for mainloop to cycle
 	s4 := r.ApproxSize()
