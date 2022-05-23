@@ -27,6 +27,7 @@ package udp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -34,6 +35,7 @@ import (
 	"time"
 
 	"github.com/sterlingdevils/gobase/pkg/chantools"
+	"github.com/sterlingdevils/gobase/pkg/pipeline"
 )
 
 // Packet holds a UDP address and Data from the UDP
@@ -76,6 +78,8 @@ type UDP struct {
 	once sync.Once
 
 	ct ConnType
+
+	pl pipeline.Pipelineable[Packet]
 }
 
 // protectChanWrite sends to a channel with a context cancel to
@@ -193,8 +197,18 @@ func (u *UDP) OuputChan() <-chan Packet {
 	return u.out
 }
 
+// PipelineChan returns a R/W channel that is used for pipelining
+func (u *UDP) PipelineChan() chan Packet {
+	return u.out
+}
+
 // Close will shutdown the output channel and cancel the context for the listen
 func (u *UDP) Close() {
+	// If we pipelined then call Close the input pipeline
+	if u.pl != nil {
+		u.pl.Close()
+	}
+
 	u.can()
 	u.once.Do(func() {
 		u.conn.Close()
@@ -242,6 +256,22 @@ func NewWithChan(port int, in chan Packet) (*UDP, error) {
 	if err != nil {
 		return nil, err
 	}
+	return udpc, nil
+}
+
+// NewWithPipeline takes a pipelineable
+func NewWithPipeline(port int, p pipeline.Pipelineable[Packet]) (*UDP, error) {
+	if p == nil {
+		return nil, errors.New("bad pipeline passed in to New")
+	}
+	udpc, err := NewWithChan(port, p.PipelineChan())
+	if err != nil {
+		return nil, err
+	}
+
+	// save the pipeline inputs
+	udpc.pl = p
+
 	return udpc, nil
 }
 

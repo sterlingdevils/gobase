@@ -18,6 +18,8 @@ import (
 	"container/list"
 	"context"
 	"sync/atomic"
+
+	"github.com/sterlingdevils/gobase/pkg/pipeline"
 )
 
 const (
@@ -44,6 +46,8 @@ type ChanBasedContainer[K comparable, T Keyable[K]] struct {
 	onetosend *T
 
 	approxSize int32
+
+	pl pipeline.Pipelineable[T]
 }
 
 func (r *ChanBasedContainer[_, T]) addT(thing T) {
@@ -110,8 +114,18 @@ func (r *ChanBasedContainer[_, T]) OutChan() <-chan T {
 	return r.outchan
 }
 
+// PipelineChan returns a R/W channel that is used for pipelining
+func (r *ChanBasedContainer[_, T]) PipelineChan() chan T {
+	return r.outchan
+}
+
 // Close the ChanBasedContainer
 func (r *ChanBasedContainer[_, _]) Close() {
+	// If we pipelined then call Close the input pipeline
+	if r.pl != nil {
+		r.pl.Close()
+	}
+
 	// Cancel our context
 	r.can()
 }
@@ -172,20 +186,40 @@ func (r *ChanBasedContainer[_, T]) mainloop() {
 	}
 }
 
-// New returns a reference to a a container or error if there was a problem
-// for performance T should be a pointer
-func New[K comparable, T Keyable[K]]() (*ChanBasedContainer[K, T], error) {
+func NewWithChan[K comparable, T Keyable[K]](in chan T) (*ChanBasedContainer[K, T], error) {
 	con, cancel := context.WithCancel(context.Background())
 	r := ChanBasedContainer[K, T]{
 		tmap:    make(map[K]T),
 		tlist:   list.New(),
-		inchan:  make(chan T, CHANSIZE),
+		inchan:  in,
 		outchan: make(chan T, CHANSIZE),
 		delchan: make(chan K, CHANSIZE),
 		ctx:     con,
 		can:     cancel}
 
 	go r.mainloop()
-
 	return &r, nil
+}
+
+func NewWithPipeline[K comparable, T Keyable[K]](p pipeline.Pipelineable[T]) (*ChanBasedContainer[K, T], error) {
+	r, err := NewWithChan[K](p.PipelineChan())
+	if err != nil {
+		return nil, err
+	}
+
+	// save pipeline
+	r.pl = p
+
+	return r, nil
+}
+
+// New returns a reference to a a container or error if there was a problem
+// for performance T should be a pointer
+func New[K comparable, T Keyable[K]]() (*ChanBasedContainer[K, T], error) {
+	r, err := NewWithChan[K](make(chan T, CHANSIZE))
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }

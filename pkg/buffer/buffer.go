@@ -66,22 +66,6 @@ func (r *Buffer[_]) mainloop() {
 	}
 }
 
-func NewWithPipeline[T any](size int, p pipeline.Pipelineable[T]) (*Buffer[T], error) {
-	if p == nil {
-		return nil, errors.New("bad pipeline passed in to New")
-	}
-	con, cancel := context.WithCancel(context.Background())
-	r := Buffer[T]{
-		ctx:     con,
-		can:     cancel,
-		inchan:  p.PipelineChan(),
-		outchan: make(chan T, 10)}
-
-	go r.mainloop()
-
-	return &r, nil
-}
-
 func NewWithChannel[T any](size int, in chan T) (*Buffer[T], error) {
 	con, cancel := context.WithCancel(context.Background())
 
@@ -94,6 +78,21 @@ func NewWithChannel[T any](size int, in chan T) (*Buffer[T], error) {
 	go r.mainloop()
 
 	return &r, nil
+}
+
+func NewWithPipeline[T any](size int, p pipeline.Pipelineable[T]) (*Buffer[T], error) {
+	if p == nil {
+		return nil, errors.New("bad pipeline passed in to New")
+	}
+
+	r, err := NewWithChannel(size, p.PipelineChan())
+	if err != nil {
+		return nil, err
+	}
+
+	r.pl = p
+
+	return r, nil
 }
 
 func New[T any](size int) (*Buffer[T], error) {
