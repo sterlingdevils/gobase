@@ -41,5 +41,8 @@ func ExampleNew() {
 
 	fmt.Print(s2 - s1)
 
+	serialnum.SnUint64.AddSn(in, 4959)
+	serialnum.SnUint.AddSn(in, 4959)
+
 	// Output: 1
 }

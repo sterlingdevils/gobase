@@ -12,12 +12,38 @@ import (
 const (
 	// number of bytes in a serial number
 	SERIALNUMSIZE = 8
+	UINT64SIZE    = 8
+	INTSIZE       = 4
 )
 
 type SerialNum struct {
 	// Holds the current incremented serial number, This is a Package wide Global
 	currentSn    uint64
 	currentMutex sync.Mutex
+}
+
+type snuint struct{}
+type snuint64 struct{}
+
+var (
+	SnUint   snuint
+	SnUint64 snuint64
+)
+
+func (snuint64) AddSn(in []byte, sn uint64) []byte {
+	data := make([]byte, SERIALNUMSIZE+len(in))
+	binary.LittleEndian.PutUint64(data, sn)
+	copy(data[SERIALNUMSIZE:], in)
+
+	return data
+}
+
+func (snuint) AddSn(in []byte, sn uint32) []byte {
+	data := make([]byte, INTSIZE+len(in))
+	binary.LittleEndian.PutUint32(data, sn)
+	copy(data[INTSIZE:], in)
+
+	return data
 }
 
 // addsn will take a uint64 and prepend it to the in slice, returns a new slice based on a new array
