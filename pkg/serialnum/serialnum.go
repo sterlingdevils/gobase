@@ -100,7 +100,7 @@ func Sn(in []byte) (sn []byte, err error) {
 	return in[:SERIALNUMSIZE], nil
 }
 
-// Sn will return a slice with the serial number
+// Uint64 will return a slice with the serial number
 // note: The returned slice has the same underlying array
 func Uint64(in []byte) (sn uint64, err error) {
 	if len(in) < SERIALNUMSIZE {
