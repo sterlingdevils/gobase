@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sterlingdevils/gobase/pkg/obj"
+	"github.com/sterlingdevils/gobase/obj"
 )
 
 // ExampleNew will show how to create one of us

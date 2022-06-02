@@ -4,7 +4,7 @@ package serialnum_test
 import (
 	"fmt"
 
-	"github.com/sterlingdevils/gobase/pkg/serialnum"
+	"github.com/sterlingdevils/gobase/serialnum"
 )
 
 func Example() {
