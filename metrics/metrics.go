@@ -11,10 +11,6 @@ const (
 	CLEAR
 )
 
-//type metricType interface {
-//	int | float32 | float64 | string
-//}
-
 type MetricsProto struct {
 	Name  string
 	Cmd   CmdType
@@ -26,6 +22,11 @@ type Metrics struct {
 }
 
 func (m *Metrics) Process(mp MetricsProto) {
+	if _, ok := m.Mapping[mp.Name]; !ok {
+		// If we don't exist, we can add it
+		m.Mapping[mp.Name] = 0
+	}
+
 	if v, ok := m.Mapping[mp.Name]; ok {
 		switch mp.Cmd {
 		case INC:
