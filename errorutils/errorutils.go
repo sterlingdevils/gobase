@@ -2,16 +2,34 @@ package errorutils
 
 import "log"
 
-func CheckFatalError[T any](t T, e error) T {
+func CheckFatalError(e error) {
 	if e != nil {
 		log.Fatalln(e)
 	}
-	return t
 }
 
-func CheckError[T any](t T, e error) T {
+func CheckError(e error) {
 	if e != nil {
 		log.Println(e)
 	}
+}
+
+func CheckFatalError2[T any](t T, e error) T {
+	CheckFatalError(e)
 	return t
+}
+
+func CheckError2[T any](t T, e error) T {
+	CheckError(e)
+	return t
+}
+
+func CheckFatalError3[T, U any](t T, u U, e error) (T, U) {
+	CheckFatalError(e)
+	return t, u
+}
+
+func CheckError3[T, U any](t T, u U, e error) (T, U) {
+	CheckError(e)
+	return t, u
 }
