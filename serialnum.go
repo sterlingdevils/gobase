@@ -1,5 +1,5 @@
 // Package serialnum adds and removes serial numbers to byte slices
-package serialnum
+package gobase
 
 import (
 	"encoding/binary"
@@ -47,7 +47,7 @@ func (snuint) AddSn(in []byte, sn uint32) []byte {
 }
 
 // addsn will take a uint64 and prepend it to the in slice, returns a new slice based on a new array
-func addsn(in []byte, sn uint64) []byte {
+func (*SerialNum) addsn(in []byte, sn uint64) []byte {
 	data := make([]byte, SERIALNUMSIZE+len(in))
 	binary.LittleEndian.PutUint64(data, sn)
 	copy(data[SERIALNUMSIZE:], in)
@@ -66,23 +66,23 @@ func (s *SerialNum) Next() uint64 {
 
 // AddInc adds an incrementing serial number to byte slice
 func (s *SerialNum) AddInc(in []byte) []byte {
-	return addsn(in, s.Next())
+	return s.addsn(in, s.Next())
 }
 
 // AddSn adds a passed in serial number to byte slice
-func AddSn(in []byte, sn uint64) []byte {
-	return addsn(in, sn)
+func (s *SerialNum) AddSn(in []byte, sn uint64) []byte {
+	return s.addsn(in, sn)
 }
 
 // AddRandom adds a random serial number to byte slice
-func AddRandom(in []byte) []byte {
+func (s *SerialNum) AddRandom(in []byte) []byte {
 	sn := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
-	return addsn(in, sn)
+	return s.addsn(in, sn)
 }
 
 // Remove will split the serial number from byte slice
 // returns the data that is after the sn, the sn, and an error it there was a problem
-func Remove(in []byte) (data []byte, sn []byte, err error) {
+func (*SerialNum) Remove(in []byte) (data []byte, sn []byte, err error) {
 	if len(in) < SERIALNUMSIZE {
 		return nil, nil, errors.New("passed in slice is smaller than a serialnumber")
 	}
@@ -92,7 +92,7 @@ func Remove(in []byte) (data []byte, sn []byte, err error) {
 
 // Sn will return a slice with the serial number
 // note: The returned slice has the same underlying array
-func Sn(in []byte) (sn []byte, err error) {
+func (*SerialNum) Sn(in []byte) (sn []byte, err error) {
 	if len(in) < SERIALNUMSIZE {
 		return nil, errors.New("passed in slice is smaller than a serialnumber")
 	}
@@ -102,7 +102,7 @@ func Sn(in []byte) (sn []byte, err error) {
 
 // Uint64 will return a slice with the serial number
 // note: The returned slice has the same underlying array
-func Uint64(in []byte) (sn uint64, err error) {
+func (*SerialNum) Uint64(in []byte) (sn uint64, err error) {
 	if len(in) < SERIALNUMSIZE {
 		return 0, errors.New("passed in slice is smaller than a serialnumber")
 	}
@@ -111,7 +111,7 @@ func Uint64(in []byte) (sn uint64, err error) {
 }
 
 // New returns a SerialNum component, each instant has its own sn counter
-func New() *SerialNum {
+func (*SerialNum) New() *SerialNum {
 	sn := SerialNum{currentSn: 0}
 	return &sn
 }

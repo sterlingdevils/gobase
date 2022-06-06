@@ -1,4 +1,4 @@
-package obj
+package gobase
 
 import (
 	"context"
@@ -22,7 +22,7 @@ func (o *Obj) Key() uint64 {
 	return o.Sn
 }
 
-func New(timeout time.Duration) (*Obj, error) {
+func (Obj) New(timeout time.Duration) (*Obj, error) {
 	c, cancel := context.WithTimeout(context.Background(), timeout)
 	o := Obj{ctx: c, can: cancel}
 

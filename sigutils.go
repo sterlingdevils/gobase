@@ -1,4 +1,4 @@
-package signalutils
+package gobase
 
 import (
 	"context"

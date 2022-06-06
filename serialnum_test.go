@@ -1,21 +1,23 @@
 // Package serialnum_test will test the public API of serialnum
-package serialnum_test
+package gobase_test
 
 import (
 	"fmt"
 
-	"github.com/sterlingdevils/gobase/serialnum"
+	"github.com/sterlingdevils/gobase"
 )
 
-func Example() {
+func ExampleSerialNum() {
 	in := []byte("Slice1")
 	fmt.Println(len(in))
 	fmt.Println(in)
 
-	in = serialnum.AddRandom(in)
+	gbsn := gobase.SerialNum{}
+
+	in = gbsn.AddRandom(in)
 	fmt.Println(len(in))
 
-	in, _, _ = serialnum.Remove(in)
+	in, _, _ = gbsn.Remove(in)
 	fmt.Println(in)
 	fmt.Println(len(in))
 	// Output:
@@ -27,22 +29,23 @@ func Example() {
 }
 
 // ExampleNew
-func ExampleNew() {
+func ExampleSerialNum_New() {
 	in := []byte("Slice1")
 	in2 := []byte("Slice2")
 
-	sncomp := serialnum.New()
+	gbsn := gobase.SerialNum{}
+
+	sncomp := gbsn.New()
 
 	in = sncomp.AddInc(in)
 	in2 = sncomp.AddInc(in2)
 
-	s1, _ := serialnum.Uint64(in)
-	s2, _ := serialnum.Uint64(in2)
+	s1, _ := gbsn.Uint64(in)
+	s2, _ := gbsn.Uint64(in2)
 
 	fmt.Print(s2 - s1)
 
-	serialnum.SnUint64.AddSn(in, 4959)
-	serialnum.SnUint.AddSn(in, 4959)
-
+	gobase.SnUint64.AddSn(in, 4959)
+	gobase.SnUint.AddSn(in, 4959)
 	// Output: 1
 }

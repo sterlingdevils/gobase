@@ -1,15 +1,15 @@
-package obj_test
+package gobase_test
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/sterlingdevils/gobase/obj"
+	"github.com/sterlingdevils/gobase"
 )
 
 // ExampleNew will show how to create one of us
-func ExampleNew() {
-	o, _ := obj.New(time.Millisecond * 100)
+func ExampleObj_New() {
+	o, _ := gobase.Obj{}.New(time.Millisecond * 100)
 	fmt.Println(o.Context().Err())
 
 	time.Sleep(time.Millisecond * 200)

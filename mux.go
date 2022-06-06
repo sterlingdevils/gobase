@@ -1,4 +1,4 @@
-package chantools
+package gobase
 
 import (
 	"context"
@@ -64,7 +64,7 @@ func (m *Mux[T]) Close() {
 
 // New returns a pointer to a new mux. Mux will create a new output Channel and put things
 // from both input channels onto the output channel
-func New[T any](wg *sync.WaitGroup, in1, in2 <-chan T, chanSize int) *Mux[T] {
+func (Mux[T]) New(wg *sync.WaitGroup, in1, in2 <-chan T, chanSize int) *Mux[T] {
 	c, cancel := context.WithCancel(context.Background())
 	m := Mux[T]{in1: in1, in2: in2, out: make(chan T, chanSize), ctx: c, can: cancel}
 	wg.Add(1)

@@ -1,4 +1,4 @@
-package chantools
+package gobase
 
 // Requires GO >= 1.18 as we use generics
 

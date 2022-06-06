@@ -1,4 +1,4 @@
-package metrics
+package gobase
 
 import "errors"
 
@@ -72,6 +72,6 @@ func (m *Metrics) AddMetric(name ...string) {
 	}
 }
 
-func New() *Metrics {
+func (Metrics) New() *Metrics {
 	return &Metrics{Mapping: make(map[string]int)}
 }
